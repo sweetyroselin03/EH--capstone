@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # AEHA – Autonomous Ethical Hacking Assistant with Intelligent Penetration Testing Automation
 
 **Course Project:** ITA1405 – Ethical Hacking  
@@ -209,3 +210,6 @@ This starts:
 
 1. **Defensive & Detection Focus:** AEHA is an ethical hacking and vulnerability management tool. It does not deliver weaponized exploits, execute denial-of-service, or harvest credentials.
 2. **Serverless Limits:** Because Vercel serverless functions have short timeouts (10–60s) and do not support raw raw socket binaries like Nmap, live network scanning is routed either through non-intrusive HTTP checks (Passive Mode) or the dedicated external Python worker (Worker Mode).
+=======
+# EH--capstone
+>>>>>>> 92727289c69dbc56affb5c9e13cc330fbd4ef589
