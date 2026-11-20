@@ -67,13 +67,13 @@ export default function AuditPage() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800 pb-5">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-5">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-white font-mono flex items-center gap-2">
-            <History className="h-5 w-5 text-emerald-400" />
+          <h1 className="text-xl font-bold tracking-tight text-foreground font-mono flex items-center gap-2">
+            <History className="h-5 w-5 text-primary" />
             <span>CRYPTOGRAPHIC AUDIT CHAIN (SHA-256)</span>
           </h1>
-          <p className="text-xs text-zinc-400 mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             Immutable, append-only security ledger. Each event block hashes previous records to guarantee tamper evidence.
           </p>
         </div>
@@ -81,7 +81,7 @@ export default function AuditPage() {
         <button
           onClick={handleVerifyChain}
           disabled={verifying}
-          className="flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-500 shadow disabled:opacity-50 transition-colors"
+          className="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-xs font-bold text-primary-foreground hover:opacity-90 shadow-xs disabled:opacity-50 transition-opacity"
         >
           {verifying ? (
             <>
@@ -100,16 +100,16 @@ export default function AuditPage() {
       {/* Verification Result Banner */}
       {verificationResult && (
         <div
-          className={`rounded-xl border p-4 text-xs font-mono flex items-start gap-3 ${
+          className={`rounded-xl border p-4 text-xs font-mono flex items-start gap-3 shadow-xs ${
             verificationResult.verified
-              ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
-              : "border-red-500/40 bg-red-500/10 text-red-300"
+              ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+              : "border-destructive/40 bg-destructive/10 text-destructive"
           }`}
         >
           {verificationResult.verified ? (
-            <CheckCircle className="h-5 w-5 shrink-0 text-emerald-400 mt-0.5" />
+            <CheckCircle className="h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400 mt-0.5" />
           ) : (
-            <ShieldAlert className="h-5 w-5 shrink-0 text-red-400 mt-0.5" />
+            <ShieldAlert className="h-5 w-5 shrink-0 text-destructive mt-0.5" />
           )}
           <div>
             <div className="font-bold uppercase">
@@ -117,28 +117,28 @@ export default function AuditPage() {
                 ? "CHAIN INTEGRITY VERIFIED (NO TAMPERING DETECTED)"
                 : "CRYPTOGRAPHIC INTEGRITY ALERT: TAMPERING DETECTED!"}
             </div>
-            <div className="text-[11px] mt-1 text-zinc-300">{verificationResult.message}</div>
+            <div className="text-[11px] mt-1 text-foreground">{verificationResult.message}</div>
           </div>
         </div>
       )}
 
       {/* Search Filter */}
       <div className="relative max-w-md">
-        <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-zinc-500" />
+        <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
         <input
           type="text"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           placeholder="Filter by action, entity type, hash, or actor..."
-          className="w-full rounded border border-zinc-700 bg-zinc-900/60 pl-9 pr-3 py-1.5 text-xs text-zinc-200 placeholder-zinc-500 focus:border-emerald-500 focus:outline-none"
+          className="w-full rounded border border-input bg-card pl-9 pr-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
         />
       </div>
 
       {/* Audit Log Table */}
-      <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 overflow-hidden">
+      <div className="rounded-xl border border-border bg-card overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="border-b border-zinc-800 bg-zinc-950/70 text-zinc-400 uppercase font-mono">
+            <thead className="border-b border-border bg-muted/40 text-muted-foreground uppercase font-mono">
               <tr>
                 <th className="py-2.5 px-3">Timestamp</th>
                 <th className="py-2.5 px-3">Actor</th>
@@ -148,26 +148,26 @@ export default function AuditPage() {
                 <th className="py-2.5 px-3">Current Hash (SHA-256)</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-800/60 font-mono text-[11px]">
+            <tbody className="divide-y divide-border font-mono text-[11px]">
               {filtered.map((log) => (
-                <tr key={log.id} className="hover:bg-zinc-800/30 transition-colors">
-                  <td className="py-3 px-3 text-zinc-400 whitespace-nowrap">
+                <tr key={log.id} className="hover:bg-muted/50 transition-colors">
+                  <td className="py-3 px-3 text-muted-foreground whitespace-nowrap">
                     {formatDate(log.ts)}
                   </td>
                   <td className="py-3 px-3">
-                    <span className="rounded bg-zinc-800 border border-zinc-700 px-1.5 py-0.5 text-zinc-300 uppercase">
+                    <span className="rounded bg-muted border border-border px-1.5 py-0.5 text-foreground uppercase">
                       {log.actorType}
                     </span>
                   </td>
-                  <td className="py-3 px-3 font-semibold text-zinc-200">{log.action}</td>
-                  <td className="py-3 px-3 text-zinc-400">
-                    <div>{log.entityType}</div>
-                    <div className="text-[10px] text-zinc-500 truncate max-w-xs">{log.entityId}</div>
+                  <td className="py-3 px-3 font-semibold text-foreground">{log.action}</td>
+                  <td className="py-3 px-3 text-muted-foreground">
+                    <div className="text-foreground">{log.entityType}</div>
+                    <div className="text-[10px] text-muted-foreground truncate max-w-xs">{log.entityId}</div>
                   </td>
-                  <td className="py-3 px-3 text-zinc-500">
+                  <td className="py-3 px-3 text-muted-foreground">
                     {log.prevHash ? `${log.prevHash.slice(0, 12)}...` : "GENESIS"}
                   </td>
-                  <td className="py-3 px-3 text-emerald-400 font-bold">
+                  <td className="py-3 px-3 text-primary font-bold">
                     {log.hash ? `${log.hash.slice(0, 16)}...` : "HASH_ERR"}
                   </td>
                 </tr>

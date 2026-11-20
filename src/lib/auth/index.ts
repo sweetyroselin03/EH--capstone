@@ -65,16 +65,30 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               const u = userResults[0];
               const isValid = comparePassword(password, u.passwordHash);
               if (isValid) {
+                if (u.status === "PENDING_APPROVAL") {
+                  throw new Error("Your account is awaiting admin approval.");
+                }
+                if (u.status === "DISABLED") {
+                  throw new Error("Your account has been disabled. Please contact an administrator.");
+                }
+
                 return {
                   id: u.id,
                   name: u.name,
                   email: u.email,
                   role: u.role,
+                  status: u.status,
                 };
               }
             }
           }
-        } catch (err) {
+        } catch (err: any) {
+          if (
+            err.message?.includes("awaiting admin approval") ||
+            err.message?.includes("disabled")
+          ) {
+            throw err;
+          }
           console.warn("Auth database query fallback:", err);
         }
 
@@ -87,6 +101,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (user) {
         token.id = user.id;
         token.role = (user as any).role || "ANALYST";
+        token.status = (user as any).status || "ACTIVE";
       }
       return token;
     },
@@ -94,6 +109,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (session.user && token) {
         (session.user as any).id = token.id as string;
         (session.user as any).role = (token.role as string) || "ANALYST";
+        (session.user as any).status = (token.status as string) || "ACTIVE";
       }
       return session;
     },

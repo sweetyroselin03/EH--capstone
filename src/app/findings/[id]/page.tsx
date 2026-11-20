@@ -55,68 +55,68 @@ export default function FindingDetailPage({
     <div className="p-6 max-w-5xl mx-auto space-y-6">
       <Link
         href="/assessments"
-        className="inline-flex items-center gap-1.5 text-xs text-zinc-400 hover:text-emerald-400 transition-colors font-mono"
+        className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-emerald-500 transition-colors font-mono"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
         <span>Back to Assessments</span>
       </Link>
 
-      <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-6 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-zinc-800 pb-4">
+      <div className="rounded-xl border border-border bg-card p-6 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border pb-4">
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className={`rounded-full border px-2.5 py-0.5 text-[11px] font-bold uppercase ${sevFmt.badgeClass}`}>
                 {sevFmt.label}
               </span>
-              <span className="font-mono text-xs text-zinc-400">CVSS: {finding.cvss}</span>
-              <span className="font-mono text-xs text-emerald-400 font-bold">{finding.cve}</span>
+              <span className="font-mono text-xs text-muted-foreground">CVSS: {finding.cvss}</span>
+              <span className="font-mono text-xs text-emerald-600 dark:text-emerald-400 font-bold">{finding.cve}</span>
             </div>
-            <h1 className="text-lg font-bold text-zinc-100">{finding.title}</h1>
+            <h1 className="text-lg font-bold text-foreground">{finding.title}</h1>
           </div>
 
           <div className="text-right">
-            <span className="text-xs font-mono text-zinc-400">Priority Score:</span>
-            <div className="text-2xl font-bold font-mono text-emerald-400">
+            <span className="text-xs font-mono text-muted-foreground">Priority Score:</span>
+            <div className="text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400">
               {finding.riskScore.score}/100
             </div>
           </div>
         </div>
 
         <div className="space-y-3">
-          <h3 className="text-xs font-bold text-zinc-300 uppercase font-mono">Vulnerability Description</h3>
-          <p className="text-xs text-zinc-300 leading-relaxed font-sans">{finding.description}</p>
-          <div className="text-[11px] font-mono text-zinc-400">{finding.cwe}</div>
+          <h3 className="text-xs font-bold text-foreground uppercase font-mono">Vulnerability Description</h3>
+          <p className="text-xs text-foreground/90 leading-relaxed font-sans">{finding.description}</p>
+          <div className="text-[11px] font-mono text-muted-foreground">{finding.cwe}</div>
         </div>
 
-        <div className="space-y-2 border-t border-zinc-800 pt-4">
-          <h3 className="text-xs font-bold text-zinc-300 uppercase font-mono flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-emerald-400" />
+        <div className="space-y-2 border-t border-border pt-4">
+          <h3 className="text-xs font-bold text-foreground uppercase font-mono flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-emerald-500" />
             <span>AI Risk Explanation & Impact Rationale</span>
           </h3>
-          <div className="rounded border border-zinc-800 bg-zinc-950 p-3 text-xs text-zinc-300">
+          <div className="rounded border border-border bg-muted/50 p-3 text-xs text-foreground">
             {finding.riskScore.explanation}
           </div>
         </div>
 
-        <div className="space-y-2 border-t border-zinc-800 pt-4">
-          <h3 className="text-xs font-bold text-zinc-300 uppercase font-mono">Sanitized Evidence Payload</h3>
-          <pre className="rounded border border-zinc-800 bg-zinc-950 p-3 font-mono text-[11px] text-emerald-300 overflow-x-auto">
+        <div className="space-y-2 border-t border-border pt-4">
+          <h3 className="text-xs font-bold text-foreground uppercase font-mono">Sanitized Evidence Payload</h3>
+          <pre className="rounded border border-border bg-muted/50 p-3 font-mono text-[11px] text-emerald-600 dark:text-emerald-300 overflow-x-auto">
             {JSON.stringify(finding.evidence, null, 2)}
           </pre>
         </div>
 
-        <div className="space-y-2 border-t border-zinc-800 pt-4">
+        <div className="space-y-2 border-t border-border pt-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-bold text-zinc-300 uppercase font-mono">Actionable Remediation Plan</h3>
+            <h3 className="text-xs font-bold text-foreground uppercase font-mono">Actionable Remediation Plan</h3>
             {finding.remediation.isSensitive && (
-              <span className="rounded bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 text-[10px] font-mono text-amber-400 font-bold">
+              <span className="rounded bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 text-[10px] font-mono text-amber-600 dark:text-amber-400 font-bold">
                 HUMAN APPROVAL MANDATORY
               </span>
             )}
           </div>
-          <div className="rounded border border-zinc-800 bg-zinc-950 p-4 space-y-2">
-            <div className="text-xs font-bold text-zinc-200">{finding.remediation.title}</div>
-            <ol className="list-decimal list-inside space-y-1 font-mono text-[11px] text-zinc-400">
+          <div className="rounded border border-border bg-muted/50 p-4 space-y-2">
+            <div className="text-xs font-bold text-foreground">{finding.remediation.title}</div>
+            <ol className="list-decimal list-inside space-y-1 font-mono text-[11px] text-muted-foreground">
               {finding.remediation.steps.map((st, i) => (
                 <li key={i}>{st}</li>
               ))}

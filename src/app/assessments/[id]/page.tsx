@@ -44,6 +44,7 @@ export default function AssessmentDetailPage({
 
   const [activeTab, setActiveTab] = useState<string>("overview");
   const [data, setData] = useState<any>(null);
+  const [userRole, setUserRole] = useState<string>("ADMIN");
   const [loading, setLoading] = useState<boolean>(true);
   const [advancing, setAdvancing] = useState<boolean>(false);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
@@ -59,10 +60,18 @@ export default function AssessmentDetailPage({
 
   const fetchAssessment = async () => {
     try {
-      const res = await fetch(`/api/assessments/${id}`);
+      const [res, profRes] = await Promise.all([
+        fetch(`/api/assessments/${id}`),
+        fetch("/api/user/profile"),
+      ]);
       const json = await res.json();
+      const profJson = await profRes.json();
+
       if (json.success && json.data) {
         setData(json.data);
+      }
+      if (profJson.success && profJson.user) {
+        setUserRole(profJson.user.role);
       }
     } catch (err) {
       console.error("Failed to load assessment:", err);
@@ -119,8 +128,8 @@ export default function AssessmentDetailPage({
   if (loading) {
     return (
       <div className="flex h-[60vh] items-center justify-center p-6">
-        <div className="text-center font-mono text-xs text-zinc-400 space-y-2">
-          <RefreshCw className="h-6 w-6 animate-spin mx-auto text-emerald-400" />
+        <div className="text-center font-mono text-xs text-muted-foreground space-y-2">
+          <RefreshCw className="h-6 w-6 animate-spin mx-auto text-primary" />
           <div>INITIALIZING ASSESSMENT TELEMETRY CONSOLE...</div>
         </div>
       </div>
@@ -134,20 +143,20 @@ export default function AssessmentDetailPage({
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* 1. Header & Live Advance Control */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800 pb-5">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-5">
         <div>
           <div className="flex items-center gap-2">
-            <span className="font-mono text-xs uppercase px-2 py-0.5 rounded bg-zinc-800 border border-zinc-700 text-zinc-300">
+            <span className="font-mono text-xs uppercase px-2 py-0.5 rounded bg-muted border border-border text-foreground font-semibold">
               {assessment.mode} MODE
             </span>
-            <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-mono font-medium ${statusFmt.class}`}>
+            <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-mono font-bold ${statusFmt.class}`}>
               {statusFmt.label}
             </span>
           </div>
-          <h1 className="text-xl font-bold tracking-tight text-white font-mono mt-1">
+          <h1 className="text-xl font-bold tracking-tight text-foreground font-mono mt-1">
             {assessment.name}
           </h1>
-          <p className="text-xs text-zinc-400 font-mono mt-0.5">
+          <p className="text-xs text-muted-foreground font-mono mt-0.5">
             UUID: {assessment.id}
           </p>
         </div>
@@ -156,16 +165,16 @@ export default function AssessmentDetailPage({
           <button
             onClick={fetchAssessment}
             title="Refresh state"
-            className="rounded border border-zinc-700 bg-zinc-800 p-2 text-zinc-300 hover:bg-zinc-700"
+            className="rounded border border-border bg-card p-2 text-muted-foreground hover:text-foreground"
           >
             <RefreshCw className="h-3.5 w-3.5" />
           </button>
 
-          {assessment.status !== "COMPLETED" && assessment.status !== "FAILED" && (
+          {userRole !== "VIEWER" && assessment.status !== "COMPLETED" && assessment.status !== "FAILED" && (
             <button
               onClick={handleAdvanceStep}
               disabled={advancing}
-              className="flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-500 shadow disabled:opacity-50 transition-colors"
+              className="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-xs font-bold text-primary-foreground hover:opacity-90 shadow-xs disabled:opacity-50 transition-opacity"
             >
               {advancing ? (
                 <>
@@ -184,15 +193,15 @@ export default function AssessmentDetailPage({
       </div>
 
       {actionMessage && (
-        <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-400 flex items-center gap-2 font-mono">
-          <Sparkles className="h-4 w-4 shrink-0 text-emerald-400" />
+        <div className="rounded-lg border border-primary/30 bg-primary/10 p-3 text-xs text-primary flex items-center gap-2 font-mono">
+          <Sparkles className="h-4 w-4 shrink-0 text-primary" />
           <span>{actionMessage}</span>
         </div>
       )}
 
       {/* 2. Interactive State Machine Timeline */}
-      <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4 overflow-x-auto">
-        <div className="text-[11px] font-mono uppercase text-zinc-400 mb-3 flex items-center justify-between">
+      <div className="rounded-xl border border-border bg-card p-4 shadow-xs overflow-x-auto">
+        <div className="text-[11px] font-mono uppercase text-muted-foreground mb-3 flex items-center justify-between">
           <span>Autonomous State Machine Trajectory:</span>
           <span>
             {currentStepIndex >= 0 ? `${currentStepIndex + 1} of ${WORKFLOW_STEPS.length} Completed / Active` : ""}
@@ -209,16 +218,16 @@ export default function AssessmentDetailPage({
                 <div
                   className={`w-full rounded p-2 text-center text-[10px] font-mono transition-all ${
                     isCurrent
-                      ? "border border-emerald-500 bg-emerald-500/20 text-emerald-300 font-bold shadow-lg shadow-emerald-500/10 animate-pulse"
+                      ? "border border-primary bg-primary/20 text-primary font-bold shadow-xs animate-pulse"
                       : isCompleted
-                      ? "border border-zinc-700 bg-zinc-800 text-zinc-200"
-                      : "border border-zinc-900 bg-zinc-950 text-zinc-600"
+                      ? "border border-border bg-muted text-foreground"
+                      : "border border-border/40 bg-muted/20 text-muted-foreground"
                   }`}
                 >
                   <div className="truncate">{step.replace(/_/g, " ")}</div>
                 </div>
                 {idx < WORKFLOW_STEPS.length - 1 && (
-                  <span className={`px-1 text-xs ${isCompleted ? "text-emerald-500" : "text-zinc-700"}`}>
+                  <span className={`px-1 text-xs ${isCompleted ? "text-primary font-bold" : "text-muted-foreground"}`}>
                     →
                   </span>
                 )}
@@ -229,7 +238,7 @@ export default function AssessmentDetailPage({
       </div>
 
       {/* 3. Tabbed Navigation */}
-      <div className="border-b border-zinc-800 flex items-center gap-1 overflow-x-auto">
+      <div className="border-b border-border flex items-center gap-1 overflow-x-auto">
         {[
           { id: "overview", label: "Overview", count: null },
           { id: "assets", label: "Attack Surface & Assets", count: data?.assets?.length },
@@ -244,14 +253,14 @@ export default function AssessmentDetailPage({
             onClick={() => setActiveTab(tab.id)}
             className={`flex items-center gap-1.5 border-b-2 px-4 py-2.5 text-xs font-medium transition-colors ${
               activeTab === tab.id
-                ? "border-emerald-500 text-emerald-400"
-                : "border-transparent text-zinc-400 hover:text-zinc-200"
+                ? "border-primary text-primary font-semibold"
+                : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
             <span>{tab.label}</span>
             {tab.count !== null && tab.count !== undefined && (
               <span className={`rounded-full px-1.5 py-0.2 text-[10px] font-mono ${
-                activeTab === tab.id ? "bg-emerald-500/20 text-emerald-400" : "bg-zinc-800 text-zinc-400"
+                activeTab === tab.id ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"
               }`}>
                 {tab.count}
               </span>
@@ -264,22 +273,22 @@ export default function AssessmentDetailPage({
       {activeTab === "overview" && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="md:col-span-2 space-y-6">
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-5 space-y-4">
-              <h3 className="text-sm font-semibold text-zinc-200">Assessment Rules & Scope Summary</h3>
-              <p className="text-xs text-zinc-300 leading-relaxed font-sans">
+            <div className="rounded-xl border border-border bg-card p-5 shadow-xs space-y-4">
+              <h3 className="text-sm font-semibold text-foreground">Assessment Rules & Scope Summary</h3>
+              <p className="text-xs text-muted-foreground leading-relaxed font-sans">
                 {assessment.rulesOfEngagement}
               </p>
 
-              <div className="border-t border-zinc-800 pt-3">
-                <div className="text-[11px] font-mono text-zinc-400 uppercase mb-2">Scope Targets:</div>
+              <div className="border-t border-border pt-3">
+                <div className="text-[11px] font-mono text-muted-foreground uppercase mb-2">Scope Targets:</div>
                 <div className="space-y-1.5">
                   {(data?.targets || []).map((t: any) => (
-                    <div key={t.id} className="flex items-center justify-between rounded border border-zinc-800 bg-zinc-950 p-2 text-xs">
-                      <span className="font-mono text-emerald-400 font-semibold">{t.value}</span>
-                      <div className="flex items-center gap-3 text-[11px] text-zinc-400">
+                    <div key={t.id} className="flex items-center justify-between rounded border border-border bg-muted/30 p-2 text-xs">
+                      <span className="font-mono text-primary font-semibold">{t.value}</span>
+                      <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
                         <span>Type: {t.type}</span>
                         <span>Criticality: {t.criticality}/5</span>
-                        <span className="text-emerald-400">● Verified</span>
+                        <span className="text-emerald-600 dark:text-emerald-400 font-medium">● Verified</span>
                       </div>
                     </div>
                   ))}
@@ -287,75 +296,75 @@ export default function AssessmentDetailPage({
               </div>
             </div>
 
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-5">
-              <h3 className="text-sm font-semibold text-zinc-200 mb-3">State Machine Workflow Actions</h3>
-              <p className="text-xs text-zinc-400 mb-4">
+            <div className="rounded-xl border border-border bg-card p-5 shadow-xs">
+              <h3 className="text-sm font-semibold text-foreground mb-3">State Machine Workflow Actions</h3>
+              <p className="text-xs text-muted-foreground mb-4">
                 The state machine enforces stepwise transitions. Use the advance button above or trigger via Vercel Cron.
               </p>
               <div className="space-y-2 text-xs font-mono">
-                <div className="p-2.5 rounded border border-zinc-800 bg-zinc-950 text-zinc-300">
-                  <span className="text-emerald-400">DRAFT → SCOPE_VALIDATED:</span> Runs Scope Guard, re-resolves DNS, blocks private/metadata IP in passive mode.
+                <div className="p-2.5 rounded border border-border bg-muted/40 text-foreground">
+                  <span className="text-primary font-bold">DRAFT → SCOPE_VALIDATED:</span> Runs Scope Guard, re-resolves DNS, blocks private/metadata IP in passive mode.
                 </div>
-                <div className="p-2.5 rounded border border-zinc-800 bg-zinc-950 text-zinc-300">
-                  <span className="text-emerald-400">SCOPE_VALIDATED → RECON:</span> Asset discovery adapter runs and maps open service ports.
+                <div className="p-2.5 rounded border border-border bg-muted/40 text-foreground">
+                  <span className="text-primary font-bold">SCOPE_VALIDATED → RECON:</span> Asset discovery adapter runs and maps open service ports.
                 </div>
-                <div className="p-2.5 rounded border border-zinc-800 bg-zinc-950 text-zinc-300">
-                  <span className="text-emerald-400">RECON → SCANNING:</span> Vulnerability scanners inspect ports and test non-intrusively.
+                <div className="p-2.5 rounded border border-border bg-muted/40 text-foreground">
+                  <span className="text-primary font-bold">RECON → SCANNING:</span> Vulnerability scanners inspect ports and test non-intrusively.
                 </div>
-                <div className="p-2.5 rounded border border-zinc-800 bg-zinc-950 text-zinc-300">
-                  <span className="text-emerald-400">SCANNING → ANALYZING:</span> AI filters false positives, deduplicates identical CVEs, ranks risk.
+                <div className="p-2.5 rounded border border-border bg-muted/40 text-foreground">
+                  <span className="text-primary font-bold">SCANNING → ANALYZING:</span> AI filters false positives, deduplicates identical CVEs, ranks risk.
                 </div>
-                <div className="p-2.5 rounded border border-zinc-800 bg-zinc-950 text-zinc-300">
-                  <span className="text-emerald-400">ANALYZING → AWAITING_APPROVAL:</span> Halts for human review on all sensitive actions.
+                <div className="p-2.5 rounded border border-border bg-muted/40 text-foreground">
+                  <span className="text-primary font-bold">ANALYZING → AWAITING_APPROVAL:</span> Halts for human review on all sensitive actions.
                 </div>
               </div>
             </div>
           </div>
 
           <div className="space-y-4">
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-5 space-y-3">
-              <h3 className="text-sm font-semibold text-zinc-200">Authorization Verification</h3>
-              <div className="rounded border border-emerald-500/20 bg-emerald-500/5 p-3 text-xs text-emerald-300 space-y-1">
+            <div className="rounded-xl border border-border bg-card p-5 shadow-xs space-y-3">
+              <h3 className="text-sm font-semibold text-foreground">Authorization Verification</h3>
+              <div className="rounded border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-700 dark:text-emerald-300 space-y-1">
                 <div className="font-bold font-mono flex items-center gap-1.5">
-                  <CheckCircle className="h-4 w-4 text-emerald-400" />
+                  <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                   <span>AUTHORIZATION CERTIFIED</span>
                 </div>
-                <div className="text-[11px] text-zinc-300">
+                <div className="text-[11px] text-muted-foreground">
                   {assessment.authorizationNote || "Authorized pentesting"}
                 </div>
               </div>
 
-              <div className="text-xs space-y-1.5 text-zinc-400 pt-2 border-t border-zinc-800">
-                <div>Started: <span className="text-zinc-200">{formatDate(assessment.startedAt)}</span></div>
-                <div>Finished: <span className="text-zinc-200">{formatDate(assessment.finishedAt)}</span></div>
-                <div>Mode: <span className="text-zinc-200 font-mono uppercase">{assessment.mode}</span></div>
+              <div className="text-xs space-y-1.5 text-muted-foreground pt-2 border-t border-border">
+                <div>Started: <span className="text-foreground">{formatDate(assessment.startedAt)}</span></div>
+                <div>Finished: <span className="text-foreground">{formatDate(assessment.finishedAt)}</span></div>
+                <div>Mode: <span className="text-foreground font-mono uppercase font-bold">{assessment.mode}</span></div>
               </div>
             </div>
 
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-5 space-y-2">
-              <h3 className="text-sm font-semibold text-zinc-200">Quick Reports Export</h3>
+            <div className="rounded-xl border border-border bg-card p-5 shadow-xs space-y-2">
+              <h3 className="text-sm font-semibold text-foreground">Quick Reports Export</h3>
               <div className="flex flex-col gap-2 pt-2">
                 <a
                   href={`/api/reports/${id}/download?format=pdf`}
                   target="_blank"
-                  className="flex items-center justify-between rounded border border-zinc-700 bg-zinc-800 px-3 py-2 text-xs text-zinc-200 hover:bg-zinc-700"
+                  className="flex items-center justify-between rounded border border-border bg-muted/50 px-3 py-2 text-xs text-foreground hover:bg-muted"
                 >
                   <span>Download Executive Report (HTML/PDF)</span>
-                  <Download className="h-3.5 w-3.5 text-emerald-400" />
+                  <Download className="h-3.5 w-3.5 text-primary" />
                 </a>
                 <a
                   href={`/api/reports/${id}/download?format=csv`}
-                  className="flex items-center justify-between rounded border border-zinc-700 bg-zinc-800 px-3 py-2 text-xs text-zinc-200 hover:bg-zinc-700"
+                  className="flex items-center justify-between rounded border border-border bg-muted/50 px-3 py-2 text-xs text-foreground hover:bg-muted"
                 >
                   <span>Export Findings CSV</span>
-                  <Download className="h-3.5 w-3.5 text-cyan-400" />
+                  <Download className="h-3.5 w-3.5 text-cyan-500" />
                 </a>
                 <a
                   href={`/api/reports/${id}/download?format=json`}
-                  className="flex items-center justify-between rounded border border-zinc-700 bg-zinc-800 px-3 py-2 text-xs text-zinc-200 hover:bg-zinc-700"
+                  className="flex items-center justify-between rounded border border-border bg-muted/50 px-3 py-2 text-xs text-foreground hover:bg-muted"
                 >
                   <span>Export Full JSON Schema</span>
-                  <Download className="h-3.5 w-3.5 text-amber-400" />
+                  <Download className="h-3.5 w-3.5 text-amber-500" />
                 </a>
               </div>
             </div>
@@ -365,13 +374,13 @@ export default function AssessmentDetailPage({
 
       {/* TAB 2: ASSETS */}
       {activeTab === "assets" && (
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 overflow-hidden">
-          <div className="p-4 border-b border-zinc-800">
-            <h3 className="text-sm font-semibold text-zinc-200">Discovered Asset Inventory & Attack Surface</h3>
-            <p className="text-xs text-zinc-400">Assets discovered within authorized scope during reconnaissance step</p>
+        <div className="rounded-xl border border-border bg-card overflow-hidden shadow-xs">
+          <div className="p-4 border-b border-border">
+            <h3 className="text-sm font-semibold text-foreground">Discovered Asset Inventory & Attack Surface</h3>
+            <p className="text-xs text-muted-foreground">Assets discovered within authorized scope during reconnaissance step</p>
           </div>
           <table className="w-full text-left text-xs">
-            <thead className="border-b border-zinc-800 bg-zinc-950/70 text-zinc-400 uppercase font-mono">
+            <thead className="border-b border-border bg-muted/40 text-muted-foreground uppercase font-mono">
               <tr>
                 <th className="py-2.5 px-4">Hostname / Domain</th>
                 <th className="py-2.5 px-4">IP Address</th>
@@ -381,23 +390,23 @@ export default function AssessmentDetailPage({
                 <th className="py-2.5 px-4">Discovered Services</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-800/60 font-sans">
+            <tbody className="divide-y divide-border font-sans">
               {(data?.assets || []).map((ast: any) => (
-                <tr key={ast.id} className="hover:bg-zinc-800/30">
-                  <td className="py-3 px-4 font-medium text-zinc-100">{ast.hostname || "N/A"}</td>
-                  <td className="py-3 px-4 font-mono text-emerald-400">{ast.ip}</td>
-                  <td className="py-3 px-4 text-zinc-300">{ast.osGuess || "Linux/Cloud"}</td>
-                  <td className="py-3 px-4 font-mono uppercase text-zinc-400">{ast.exposure}</td>
-                  <td className="py-3 px-4 font-mono text-zinc-300">{ast.criticality}/5</td>
+                <tr key={ast.id} className="hover:bg-muted/50 transition-colors">
+                  <td className="py-3 px-4 font-semibold text-foreground">{ast.hostname || "N/A"}</td>
+                  <td className="py-3 px-4 font-mono text-primary font-bold">{ast.ip}</td>
+                  <td className="py-3 px-4 text-foreground">{ast.osGuess || "Linux/Cloud"}</td>
+                  <td className="py-3 px-4 font-mono uppercase text-muted-foreground">{ast.exposure}</td>
+                  <td className="py-3 px-4 font-mono text-foreground">{ast.criticality}/5</td>
                   <td className="py-3 px-4">
                     <div className="flex flex-wrap gap-1.5">
                       {(ast.services || []).map((s: any, idx: number) => (
-                        <span key={idx} className="rounded border border-zinc-700 bg-zinc-800 px-2 py-0.5 text-[10px] font-mono text-zinc-300">
+                        <span key={idx} className="rounded border border-border bg-muted px-2 py-0.5 text-[10px] font-mono text-foreground">
                           {s.port}/{s.name} ({s.product || "service"})
                         </span>
                       ))}
                       {(!ast.services || ast.services.length === 0) && (
-                        <span className="text-zinc-500 text-[11px]">80/tcp, 443/tcp, 8080/tcp</span>
+                        <span className="text-muted-foreground text-[11px]">80/tcp, 443/tcp, 8080/tcp</span>
                       )}
                     </div>
                   </td>
@@ -411,19 +420,19 @@ export default function AssessmentDetailPage({
       {/* TAB 3: FINDINGS & TRIAGE */}
       {activeTab === "findings" && (
         <div className="space-y-4">
-          <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 overflow-hidden">
-            <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
+          <div className="rounded-xl border border-border bg-card overflow-hidden shadow-xs">
+            <div className="p-4 border-b border-border flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-semibold text-zinc-200">Normalized Vulnerabilities & Findings</h3>
-                <p className="text-xs text-zinc-400">AI-normalized findings with duplicate clustering and false-positive classification</p>
+                <h3 className="text-sm font-semibold text-foreground">Normalized Vulnerabilities & Findings</h3>
+                <p className="text-xs text-muted-foreground">AI-normalized findings with duplicate clustering and false-positive classification</p>
               </div>
-              <span className="text-xs font-mono text-zinc-400">
+              <span className="text-xs font-mono text-muted-foreground">
                 Total: {(data?.findings || []).length}
               </span>
             </div>
 
             <table className="w-full text-left text-xs">
-              <thead className="border-b border-zinc-800 bg-zinc-950/70 text-zinc-400 uppercase font-mono">
+              <thead className="border-b border-border bg-muted/40 text-muted-foreground uppercase font-mono">
                 <tr>
                   <th className="py-2.5 px-4">Severity</th>
                   <th className="py-2.5 px-4">Finding Title</th>
@@ -433,44 +442,44 @@ export default function AssessmentDetailPage({
                   <th className="py-2.5 px-4">FP Probability</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-800/60 font-sans">
+              <tbody className="divide-y divide-border font-sans">
                 {(data?.findings || []).map((f: any) => {
                   const sevFmt = formatSeverity(f.severity);
                   return (
-                    <tr key={f.id} className="hover:bg-zinc-800/30">
+                    <tr key={f.id} className="hover:bg-muted/50 transition-colors">
                       <td className="py-3 px-4">
                         <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${sevFmt.badgeClass}`}>
                           {sevFmt.label}
                         </span>
                       </td>
                       <td className="py-3 px-4 max-w-md">
-                        <div className="font-semibold text-zinc-100">{f.title}</div>
-                        <div className="text-[11px] text-zinc-400 truncate mt-0.5">{f.description}</div>
+                        <div className="font-semibold text-foreground">{f.title}</div>
+                        <div className="text-[11px] text-muted-foreground truncate mt-0.5">{f.description}</div>
                         {f.duplicateOf && (
-                          <div className="mt-1 text-[10px] text-amber-400 font-mono">
+                          <div className="mt-1 text-[10px] text-amber-600 dark:text-amber-400 font-mono">
                             ↳ [AI DUP CLUSTER] Duplicate of finding {f.duplicateOf.slice(0, 8)}...
                           </div>
                         )}
                       </td>
-                      <td className="py-3 px-4 font-mono text-zinc-300">
+                      <td className="py-3 px-4 font-mono text-foreground">
                         <div>CVSS: {f.cvss ?? "N/A"}</div>
-                        <div className="text-zinc-500 text-[10px]">{f.cve || f.cwe || "N/A"}</div>
+                        <div className="text-muted-foreground text-[10px]">{f.cve || f.cwe || "N/A"}</div>
                       </td>
                       <td className="py-3 px-4">
-                        <span className="font-mono text-[11px] uppercase rounded border border-zinc-700 bg-zinc-800 px-2 py-0.5 text-zinc-300">
+                        <span className="font-mono text-[11px] uppercase rounded border border-border bg-muted px-2 py-0.5 text-foreground">
                           {f.status}
                         </span>
                       </td>
-                      <td className="py-3 px-4 font-mono text-emerald-400">
+                      <td className="py-3 px-4 font-mono text-primary font-bold">
                         {f.aiConfidence ? `${(f.aiConfidence * 100).toFixed(0)}%` : "95% (Rule)"}
                       </td>
                       <td className="py-3 px-4 font-mono">
                         {f.fpProbability && f.fpProbability > 0.5 ? (
-                          <span className="text-amber-400 font-bold">
+                          <span className="text-amber-600 dark:text-amber-400 font-bold">
                             {(f.fpProbability * 100).toFixed(0)}% (FP)
                           </span>
                         ) : (
-                          <span className="text-zinc-400">
+                          <span className="text-muted-foreground">
                             {f.fpProbability ? `${(f.fpProbability * 100).toFixed(0)}%` : "5%"}
                           </span>
                         )}
@@ -487,9 +496,9 @@ export default function AssessmentDetailPage({
       {/* TAB 4: RISK PRIORITIZATION */}
       {activeTab === "risk" && (
         <div className="space-y-4">
-          <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-5">
-            <h3 className="text-sm font-semibold text-zinc-200">Risk Score Engine: Weighted Multi-Factor Calculation</h3>
-            <p className="text-xs text-zinc-400 mt-1">
+          <div className="rounded-xl border border-border bg-card p-5 shadow-xs">
+            <h3 className="text-sm font-semibold text-foreground">Risk Score Engine: Weighted Multi-Factor Calculation</h3>
+            <p className="text-xs text-muted-foreground mt-1">
               Risk score (0–100) = weighted combination of CVSS/severity (50%), exposure (25%), and asset criticality (25%).
             </p>
           </div>
@@ -501,39 +510,39 @@ export default function AssessmentDetailPage({
               .map((f: any, idx: number) => {
                 const rs = f.riskScore;
                 return (
-                  <div key={f.id} className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4 space-y-3">
+                  <div key={f.id} className="rounded-xl border border-border bg-card p-4 shadow-xs space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/10 border border-emerald-500/40 text-emerald-400 text-xs font-bold font-mono">
+                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/15 border border-primary/40 text-primary text-xs font-bold font-mono">
                           #{idx + 1}
                         </span>
-                        <span className="font-semibold text-sm text-zinc-100">{f.title}</span>
+                        <span className="font-semibold text-sm text-foreground">{f.title}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-zinc-400 font-mono">Risk Score:</span>
-                        <span className="rounded bg-emerald-500/20 border border-emerald-500/40 px-2.5 py-0.5 text-sm font-bold font-mono text-emerald-300">
+                        <span className="text-xs text-muted-foreground font-mono">Risk Score:</span>
+                        <span className="rounded bg-primary/20 border border-primary/40 px-2.5 py-0.5 text-sm font-bold font-mono text-primary">
                           {rs.score}/100
                         </span>
                       </div>
                     </div>
 
                     <div className="grid grid-cols-3 gap-2 text-xs font-mono">
-                      <div className="rounded border border-zinc-800 bg-zinc-950 p-2">
-                        <div className="text-zinc-500 text-[10px]">Severity Component:</div>
-                        <div className="text-zinc-200">{rs.severityComponent} pts (50% weight)</div>
+                      <div className="rounded border border-border bg-muted/40 p-2">
+                        <div className="text-muted-foreground text-[10px]">Severity Component:</div>
+                        <div className="text-foreground font-semibold">{rs.severityComponent} pts (50% weight)</div>
                       </div>
-                      <div className="rounded border border-zinc-800 bg-zinc-950 p-2">
-                        <div className="text-zinc-500 text-[10px]">Exposure Component:</div>
-                        <div className="text-zinc-200">{rs.exposureComponent} pts (25% weight)</div>
+                      <div className="rounded border border-border bg-muted/40 p-2">
+                        <div className="text-muted-foreground text-[10px]">Exposure Component:</div>
+                        <div className="text-foreground font-semibold">{rs.exposureComponent} pts (25% weight)</div>
                       </div>
-                      <div className="rounded border border-zinc-800 bg-zinc-950 p-2">
-                        <div className="text-zinc-500 text-[10px]">Criticality Component:</div>
-                        <div className="text-zinc-200">{rs.criticalityComponent} pts (25% weight)</div>
+                      <div className="rounded border border-border bg-muted/40 p-2">
+                        <div className="text-muted-foreground text-[10px]">Criticality Component:</div>
+                        <div className="text-foreground font-semibold">{rs.criticalityComponent} pts (25% weight)</div>
                       </div>
                     </div>
 
-                    <div className="rounded bg-zinc-950/80 p-3 text-xs text-zinc-300 border border-zinc-800/80">
-                      <strong className="text-emerald-400">Why this score:</strong> {rs.explanation}
+                    <div className="rounded bg-muted/50 p-3 text-xs text-foreground border border-border">
+                      <strong className="text-primary font-bold">Why this score:</strong> {rs.explanation}
                     </div>
                   </div>
                 );
@@ -545,9 +554,9 @@ export default function AssessmentDetailPage({
       {/* TAB 5: REMEDIATION TRACKER */}
       {activeTab === "remediation" && (
         <div className="space-y-4">
-          <div className="p-4 rounded-xl border border-zinc-800 bg-zinc-900/40">
-            <h3 className="text-sm font-semibold text-zinc-200">Intelligent Remediation Action Plans</h3>
-            <p className="text-xs text-zinc-400">Concrete steps generated autonomously by AI model and security rule engine</p>
+          <div className="p-4 rounded-xl border border-border bg-card shadow-xs">
+            <h3 className="text-sm font-semibold text-foreground">Intelligent Remediation Action Plans</h3>
+            <p className="text-xs text-muted-foreground">Concrete steps generated autonomously by AI model and security rule engine</p>
           </div>
 
           <div className="space-y-4">
@@ -556,27 +565,27 @@ export default function AssessmentDetailPage({
               .map((f: any) => {
                 const rem = f.remediation;
                 return (
-                  <div key={rem.id} className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5 space-y-3">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-zinc-800/80 pb-3">
+                  <div key={rem.id} className="rounded-xl border border-border bg-card p-5 shadow-xs space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border pb-3">
                       <div>
-                        <div className="text-xs text-zinc-400 font-mono">Remediation for: {f.title}</div>
-                        <div className="text-sm font-bold text-zinc-100">{rem.title}</div>
+                        <div className="text-xs text-muted-foreground font-mono">Remediation for: {f.title}</div>
+                        <div className="text-sm font-bold text-foreground">{rem.title}</div>
                       </div>
                       <div className="flex items-center gap-2">
                         {rem.isSensitive && (
-                          <span className="rounded bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 text-[10px] font-mono text-amber-400 font-semibold">
+                          <span className="rounded bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[10px] font-mono text-amber-700 dark:text-amber-400 font-bold">
                             REQUIRES APPROVAL
                           </span>
                         )}
-                        <span className="font-mono text-[11px] uppercase rounded border border-zinc-700 bg-zinc-800 px-2 py-0.5 text-zinc-300">
+                        <span className="font-mono text-[11px] uppercase rounded border border-border bg-muted px-2 py-0.5 text-foreground font-semibold">
                           {rem.status}
                         </span>
                       </div>
                     </div>
 
-                    <div className="text-xs text-zinc-300 space-y-1">
-                      <div className="font-semibold text-zinc-200">Implementation Steps:</div>
-                      <ol className="list-decimal list-inside space-y-1 font-mono text-[11px] text-zinc-400">
+                    <div className="text-xs text-foreground space-y-1">
+                      <div className="font-semibold text-foreground">Implementation Steps:</div>
+                      <ol className="list-decimal list-inside space-y-1 font-mono text-[11px] text-muted-foreground">
                         {(Array.isArray(rem.steps) ? rem.steps : []).map((st: string, idx: number) => (
                           <li key={idx}>{st}</li>
                         ))}
@@ -592,35 +601,35 @@ export default function AssessmentDetailPage({
       {/* TAB 6: APPROVALS INBOX */}
       {activeTab === "approvals" && (
         <div className="space-y-4">
-          <div className="p-4 rounded-xl border border-zinc-800 bg-zinc-900/40">
-            <h3 className="text-sm font-semibold text-zinc-200">Sensitive Action Approval Inbox</h3>
-            <p className="text-xs text-zinc-400">
+          <div className="p-4 rounded-xl border border-border bg-card shadow-xs">
+            <h3 className="text-sm font-semibold text-foreground">Sensitive Action Approval Inbox</h3>
+            <p className="text-xs text-muted-foreground">
               High-impact configurations, service restarts, and core package upgrades strictly require human approval
             </p>
           </div>
 
           <div className="space-y-3">
             {(data?.approvals || []).map((app: any) => (
-              <div key={app.id} className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div key={app.id} className="rounded-xl border border-border bg-card p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="rounded bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 text-[10px] font-mono text-amber-400 font-bold">
+                    <span className="rounded bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[10px] font-mono text-amber-700 dark:text-amber-400 font-bold">
                       SENSITIVE ACTION
                     </span>
-                    <span className="font-mono text-xs text-zinc-400">ID: {app.id.slice(0, 8)}...</span>
+                    <span className="font-mono text-xs text-muted-foreground">ID: {app.id.slice(0, 8)}...</span>
                   </div>
-                  <div className="text-sm font-bold text-zinc-100">{app.title}</div>
-                  <div className="text-xs text-zinc-400 mt-1">
-                    Status: <span className="font-mono text-zinc-300">{app.decision || app.status || "Pending Analyst Sign-off"}</span>
+                  <div className="text-sm font-bold text-foreground">{app.title}</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Status: <span className="font-mono text-foreground font-semibold">{app.decision || app.status || "Pending Analyst Sign-off"}</span>
                   </div>
                   {app.reason && (
-                    <div className="mt-2 text-xs font-mono text-zinc-300 bg-zinc-950 p-2 rounded border border-zinc-800">
+                    <div className="mt-2 text-xs font-mono text-foreground bg-muted p-2 rounded border border-border">
                       Reason: {app.reason}
                     </div>
                   )}
                 </div>
 
-                {!app.decision && (
+                {!app.decision && userRole !== "VIEWER" && (
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() =>
@@ -645,7 +654,7 @@ export default function AssessmentDetailPage({
                           decision: "rejected",
                         })
                       }
-                      className="flex items-center gap-1.5 rounded border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-400 hover:bg-red-500/20"
+                      className="flex items-center gap-1.5 rounded border border-destructive/40 bg-destructive/10 px-3 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive/20"
                     >
                       <ThumbsDown className="h-3.5 w-3.5" />
                       <span>Reject</span>
@@ -656,7 +665,7 @@ export default function AssessmentDetailPage({
             ))}
 
             {(!data?.approvals || data.approvals.length === 0) && (
-              <div className="p-8 text-center text-xs text-zinc-500 border border-dashed border-zinc-800 rounded-xl">
+              <div className="p-8 text-center text-xs text-muted-foreground border border-dashed border-border rounded-xl">
                 No sensitive remediations currently pending human approval.
               </div>
             )}
@@ -667,9 +676,9 @@ export default function AssessmentDetailPage({
       {/* TAB 7: REPORTS */}
       {activeTab === "report" && (
         <div className="space-y-4">
-          <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-5">
-            <h3 className="text-sm font-semibold text-zinc-200">Download Formal Penetration Testing Reports</h3>
-            <p className="text-xs text-zinc-400 mt-1">
+          <div className="rounded-xl border border-border bg-card p-5 shadow-xs">
+            <h3 className="text-sm font-semibold text-foreground">Download Formal Penetration Testing Reports</h3>
+            <p className="text-xs text-muted-foreground mt-1">
               Includes executive summary, attack surface asset inventory, technical evidence, CVSS metrics, and appendix.
             </p>
 
@@ -677,35 +686,35 @@ export default function AssessmentDetailPage({
               <a
                 href={`/api/reports/${id}/download?format=pdf`}
                 target="_blank"
-                className="flex items-center justify-between rounded-lg border border-zinc-700 bg-zinc-800 p-4 hover:border-emerald-500 transition-colors"
+                className="flex items-center justify-between rounded-lg border border-border bg-card p-4 hover:border-primary transition-colors"
               >
                 <div>
-                  <div className="text-xs font-bold text-zinc-100">Executive Report (HTML / PDF)</div>
-                  <div className="text-[11px] text-zinc-400 mt-0.5">Formal executive and board summary</div>
+                  <div className="text-xs font-bold text-foreground">Executive Report (HTML / PDF)</div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5">Formal executive and board summary</div>
                 </div>
-                <Download className="h-4 w-4 text-emerald-400" />
+                <Download className="h-4 w-4 text-primary" />
               </a>
 
               <a
                 href={`/api/reports/${id}/download?format=csv`}
-                className="flex items-center justify-between rounded-lg border border-zinc-700 bg-zinc-800 p-4 hover:border-cyan-500 transition-colors"
+                className="flex items-center justify-between rounded-lg border border-border bg-card p-4 hover:border-cyan-500 transition-colors"
               >
                 <div>
-                  <div className="text-xs font-bold text-zinc-100">Technical Findings CSV</div>
-                  <div className="text-[11px] text-zinc-400 mt-0.5">Spreadsheet for vulnerability management</div>
+                  <div className="text-xs font-bold text-foreground">Technical Findings CSV</div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5">Spreadsheet for vulnerability management</div>
                 </div>
-                <Download className="h-4 w-4 text-cyan-400" />
+                <Download className="h-4 w-4 text-cyan-500" />
               </a>
 
               <a
                 href={`/api/reports/${id}/download?format=json`}
-                className="flex items-center justify-between rounded-lg border border-zinc-700 bg-zinc-800 p-4 hover:border-amber-500 transition-colors"
+                className="flex items-center justify-between rounded-lg border border-border bg-card p-4 hover:border-amber-500 transition-colors"
               >
                 <div>
-                  <div className="text-xs font-bold text-zinc-100">Raw Telemetry JSON</div>
-                  <div className="text-[11px] text-zinc-400 mt-0.5">Full programmatic schema output</div>
+                  <div className="text-xs font-bold text-foreground">Raw Telemetry JSON</div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5">Full programmatic schema output</div>
                 </div>
-                <Download className="h-4 w-4 text-amber-400" />
+                <Download className="h-4 w-4 text-amber-500" />
               </a>
             </div>
           </div>
@@ -714,17 +723,17 @@ export default function AssessmentDetailPage({
 
       {/* Decision Modal */}
       {approvalModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-xl border border-zinc-700 bg-zinc-900 p-6 space-y-4 shadow-2xl">
-            <h3 className="text-sm font-bold text-zinc-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
+          <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 space-y-4 shadow-2xl">
+            <h3 className="text-sm font-bold text-foreground">
               {approvalModal.decision === "approved" ? "Approve Sensitive Action" : "Reject Sensitive Action"}
             </h3>
-            <p className="text-xs text-zinc-300 font-mono">
+            <p className="text-xs text-muted-foreground font-mono">
               Action: {approvalModal.title}
             </p>
 
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-zinc-300">
+              <label className="text-xs font-semibold text-foreground">
                 Justification Reason (Cryptographically Logged)
               </label>
               <textarea
@@ -732,15 +741,15 @@ export default function AssessmentDetailPage({
                 onChange={(e) => setApprovalReason(e.target.value)}
                 placeholder="Provide justification note for audit record..."
                 rows={3}
-                className="w-full rounded border border-zinc-700 bg-zinc-950 p-2 text-xs text-zinc-100 focus:border-emerald-500 focus:outline-none"
+                className="w-full rounded border border-input bg-background p-2 text-xs text-foreground focus:border-primary focus:outline-none"
               />
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2">
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-border">
               <button
                 type="button"
                 onClick={() => setApprovalModal(null)}
-                className="rounded border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-700"
+                className="rounded border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
               >
                 Cancel
               </button>
@@ -748,7 +757,7 @@ export default function AssessmentDetailPage({
                 type="button"
                 onClick={handleApprovalSubmit}
                 disabled={!approvalReason.trim()}
-                className={`rounded px-4 py-1.5 text-xs font-bold text-white transition-colors disabled:opacity-50 ${
+                className={`rounded px-4 py-1.5 text-xs font-bold text-white transition-opacity disabled:opacity-50 ${
                   approvalModal.decision === "approved"
                     ? "bg-emerald-600 hover:bg-emerald-500"
                     : "bg-red-600 hover:bg-red-500"

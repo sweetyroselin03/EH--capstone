@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # AEHA – Autonomous Ethical Hacking Assistant with Intelligent Penetration Testing Automation
 
 **Course Project:** ITA1405 – Ethical Hacking  
@@ -16,21 +15,24 @@ AEHA is an intelligent assistant designed to automate authorized penetration tes
 - **Multi-Factor Risk Prioritization:** Calculates weighted risk scores (0–100) based on severity/CVSS, internet exposure, and asset criticality.
 - **Human-in-the-Loop Approval Gates:** Mandatory approval required for sensitive actions (disabling services, disruptive configuration adjustments).
 - **Reassessment & Verification:** Automatically re-tests remediated assets to confirm vulnerability closure.
-- **Cryptographic Audit Chain (SHA-256):** Tamper-evident hash chaining across every security decision, scan event, and approval.
+- **Cryptographic Audit Chain (SHA-256):** Tamper-evident hash chaining across every security decision, scan event, approval, and user authentication action.
+- **Enterprise Onboarding & RBAC:** Comprehensive self-registration with password complexity, admin approval workflow, one-time invite tokens, password reset with expiring tokens, rate-limiting, and profile management.
+- **WCAG AA Theming:** System-wide dark/light/system theme toggling powered by `next-themes` and semantic CSS variables.
 
 ---
 
 ## 2. 4-Layer System Architecture
 
 ```text
-User (Security Analyst / Admin)
+User (Security Analyst / Admin / Viewer)
    ↓
-[ Layer 1: Web Dashboard ]
-   Next.js 15 App Router • Tailwind CSS • Recharts • Security Ops Console
+[ Layer 1: Web Dashboard & Theme Engine ]
+   Next.js 15 App Router • Tailwind CSS • next-themes • Recharts • Security Ops Console
    ↓
 [ Layer 2: Application Server & Orchestration ]
    Next.js API Route Handlers on Vercel • Vercel Cron Queue (/api/cron/tick)
    Scope Guard Gatekeeper • AI Reasoning Engine (Vercel AI SDK + Rules Fallback)
+   Sliding Window Rate Limiter • RBAC Middleware
    ↓                                   ↓
 [ Layer 3: Database & Audit Ledger ]  [ Layer 4: Pluggable Scanner Adapters ]
    PostgreSQL on Neon (Serverless)      ├─ DemoScanner (Default, simulated CVEs & probes)
@@ -66,7 +68,24 @@ COMPLETED (or FAILED / CANCELLED)
 
 ---
 
-## 4. Quick Start (Local Development)
+## 4. User Onboarding, RBAC & Theming
+
+### Role Hierarchy & Permissions
+- **`ADMIN`:** Full access to all assessments, audit chain, system settings, approval gates, and `/admin/users` (approve/reject new registrations, change roles, disable/enable accounts, generate one-time 48-hour invite links).
+- **`ANALYST`:** Create & run assessments, configure rules of engagement, approve sensitive remediation plans, and view reports and audit logs.
+- **`VIEWER`:** Read-only access to completed assessments, reports, and audit logs. Restricted from mutating state machines or approving remediation tasks.
+
+### Onboarding & Security Features
+- **Registration (`/register`):** Validated with Zod (minimum 10 characters, at least 1 number, at least 1 symbol). New self-registered accounts receive `VIEWER` role with `PENDING_APPROVAL` status. Login is strictly blocked until approved by an administrator.
+- **Admin User Management (`/admin/users`):** Dedicated admin console displaying pending approval accounts, instant one-click Approve / Reject, role promotion/demotion, account disable/enable, and an **Invite User** generator that creates a cryptographic 48-hour one-time link that bypasses approval.
+- **Forgot & Reset Password (`/forgot-password` and `/reset-password/[token]`):** Generates a 1-hour single-use token. Dispatches an email via Resend when `RESEND_API_KEY` is configured, or provides a copyable link in the admin UI for demo setups.
+- **User Profile (`/profile`):** View role, email, change display name, and update password with current-password verification.
+- **Rate Limiting & Audit Trail:** Built-in sliding-window rate limiter protecting login, registration, and reset endpoints. All user status changes, role updates, invite creations, and reset activities are automatically logged to the append-only SHA-256 audit ledger.
+- **Accessible Theming (`Light / Dark / System`):** Zero hardcoded component colors; fully responsive shadcn semantic CSS tokens with WCAG AA compliant contrast for charts, severity badges, and code blocks.
+
+---
+
+## 5. Quick Start (Local Development)
 
 ### Prerequisites
 - Node.js 18+ or 20+ (Node v24 supported)
@@ -97,11 +116,12 @@ Key defaults provided in `.env.example`:
 ```bash
 npm run test
 ```
-Runs 22 comprehensive Vitest unit tests covering:
+Runs 32 comprehensive Vitest unit tests covering:
 - Scope Guard & Private IP rejection (11 tests)
 - Risk Scorer & Multi-factor weighting (4 tests)
 - AI Engine, Deduplication & False-positive triage (4 tests)
 - Cryptographic SHA-256 Audit Chain & Tamper Detection (3 tests)
+- Password validation, Rate limiter, Token hashing & RBAC permissions (10 tests)
 
 ### Step 4: Run the Development Server
 ```bash
@@ -111,7 +131,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 
-## 5. Step-by-Step Vercel Deployment
+## 6. Step-by-Step Vercel Deployment
 
 Deploying AEHA to Vercel requires zero binary dependencies:
 
@@ -145,6 +165,7 @@ Deploying AEHA to Vercel requires zero binary dependencies:
    | `WORKER_TOKEN` | *(Secret token)* | Authenticates scanner worker |
    | `WORKER_HMAC_SECRET`| *(Secret HMAC key)* | Signs worker telemetry |
    | `DEFAULT_MODE` | `demo` | Safe Vercel default mode |
+   | `RESEND_API_KEY` | *(Optional)* | For password reset emails via Resend |
    | `GOOGLE_GENERATIVE_AI_API_KEY` | *(Optional)* | Google Gemini API Key |
    | `OPENAI_API_KEY` | *(Optional)* | OpenAI API Key |
    | `ANTHROPIC_API_KEY` | *(Optional)* | Anthropic Claude Key |
@@ -167,7 +188,7 @@ Deploying AEHA to Vercel requires zero binary dependencies:
 
 ---
 
-## 6. Optional Real Scanner Worker (Lab Environment)
+## 7. Optional Real Scanner Worker (Lab Environment)
 
 For running real `nmap` and `owasp-zap` scans against an isolated lab target (e.g. OWASP Juice Shop / DVWA), use the `/worker` daemon:
 
@@ -188,15 +209,17 @@ This starts:
 
 ---
 
-## 7. Demo Accounts & Acceptance Testing Checklist
+## 8. Demo Accounts & Acceptance Testing Checklist
 
 ### Pre-configured Credentials
 - **Admin Role:** `admin@aeha.local` / `AdminSecurePassword123!`
 - **Analyst Role:** `analyst@aeha.local` / `AnalystSecurePassword123!`
 
 ### Acceptance Checklist
-- [x] **`npm run test`**: 22 unit tests pass covering scope guard, risk formula, AI triage, and SHA-256 hash chaining.
+- [x] **`npm run test`**: 32 unit tests pass covering scope guard, risk formula, AI triage, onboarding validations, and SHA-256 hash chaining.
 - [x] **`npm run build`**: Builds with 0 errors and zero native dependencies.
+- [x] **User Onboarding & Admin Gate**: Self-registration with strict password policy, pending approval state, admin user approvals, and one-time invites.
+- [x] **Light / Dark / System Theme**: System-wide theme toggle with zero hardcoded component colors and WCAG AA contrast.
 - [x] **State Machine Execution**: Full step progression from `DRAFT` through `COMPLETED`.
 - [x] **Scope Guard Protection**: Blocks loopback (`127.0.0.1`), cloud metadata (`169.254.169.254`), and out-of-scope targets in passive mode.
 - [x] **AI False-Positive & Duplicate Detection**: Identifies static assets misdiagnosed as SQLi and clusters duplicate CVEs.
@@ -206,10 +229,7 @@ This starts:
 
 ---
 
-## 8. Limitations & Security Policy
+## 9. Limitations & Security Policy
 
 1. **Defensive & Detection Focus:** AEHA is an ethical hacking and vulnerability management tool. It does not deliver weaponized exploits, execute denial-of-service, or harvest credentials.
-2. **Serverless Limits:** Because Vercel serverless functions have short timeouts (10–60s) and do not support raw raw socket binaries like Nmap, live network scanning is routed either through non-intrusive HTTP checks (Passive Mode) or the dedicated external Python worker (Worker Mode).
-=======
-# EH--capstone
->>>>>>> 92727289c69dbc56affb5c9e13cc330fbd4ef589
+2. **Serverless Limits:** Because Vercel serverless functions have short timeouts (10–60s) and do not support raw socket binaries like Nmap, live network scanning is routed either through non-intrusive HTTP checks (Passive Mode) or the dedicated external Python worker (Worker Mode).

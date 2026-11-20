@@ -65,8 +65,45 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
   role: text("role").notNull().default("ANALYST"), // ADMIN, ANALYST, VIEWER
+  status: text("status").notNull().default("PENDING_APPROVAL"), // ACTIVE, PENDING_APPROVAL, DISABLED
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+// 1b. User Invites (one-time token expiring in 48h)
+export const invites = pgTable(
+  "invites",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    email: text("email").notNull(),
+    role: text("role").notNull().default("ANALYST"), // ADMIN, ANALYST, VIEWER
+    tokenHash: text("token_hash").notNull().unique(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    usedAt: timestamp("used_at", { withTimezone: true }),
+    createdBy: uuid("created_by").references(() => users.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("idx_invites_email").on(table.email),
+    index("idx_invites_token").on(table.tokenHash),
+  ]
+);
+
+// 1c. Password Reset Tokens (one-time token expiring in 1h)
+export const passwordResetTokens = pgTable(
+  "password_reset_tokens",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+    tokenHash: text("token_hash").notNull().unique(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    usedAt: timestamp("used_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("idx_reset_token").on(table.tokenHash),
+    index("idx_reset_user").on(table.userId),
+  ]
+);
 
 // 2. Assessments
 export const assessments = pgTable(

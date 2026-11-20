@@ -25,6 +25,7 @@ export async function runSeed() {
         email: (process.env.ADMIN_EMAIL || "admin@aeha.local").toLowerCase(),
         passwordHash: adminPasswordHash,
         role: "ADMIN",
+        status: "ACTIVE",
       })
       .onConflictDoNothing()
       .returning();
@@ -36,9 +37,22 @@ export async function runSeed() {
         email: (process.env.ANALYST_EMAIL || "analyst@aeha.local").toLowerCase(),
         passwordHash: analystPasswordHash,
         role: "ANALYST",
+        status: "ACTIVE",
       })
       .onConflictDoNothing()
       .returning();
+
+    // Sample pending approval user
+    await db
+      .insert(schema.users)
+      .values({
+        name: "Security Intern Candidate",
+        email: "intern@aeha.local",
+        passwordHash: hashPassword("InternPassword123!"),
+        role: "VIEWER",
+        status: "PENDING_APPROVAL",
+      })
+      .onConflictDoNothing();
 
     const adminId = adminUser?.id;
     const analystId = analystUser?.id;

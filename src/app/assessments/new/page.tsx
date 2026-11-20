@@ -128,12 +128,12 @@ export default function NewAssessmentWizard() {
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
       {/* Wizard Step Indicator */}
-      <div className="border-b border-zinc-800 pb-5">
-        <h1 className="text-xl font-bold tracking-tight text-white font-mono flex items-center gap-2">
-          <Target className="h-5 w-5 text-emerald-400" />
+      <div className="border-b border-border pb-5">
+        <h1 className="text-xl font-bold tracking-tight text-foreground font-mono flex items-center gap-2">
+          <Target className="h-5 w-5 text-primary" />
           <span>NEW ASSESSMENT WIZARD</span>
         </h1>
-        <p className="text-xs text-zinc-400 mt-1">
+        <p className="text-xs text-muted-foreground mt-1">
           Configure authorized scope targets, rules of engagement, and autonomous scanning mode
         </p>
 
@@ -148,13 +148,13 @@ export default function NewAssessmentWizard() {
               key={s.num}
               className={`rounded border p-2 text-xs transition-colors ${
                 step === s.num
-                  ? "border-emerald-500 bg-emerald-500/10 text-emerald-400"
+                  ? "border-primary bg-primary/10 text-primary font-bold shadow-xs"
                   : step > s.num
-                  ? "border-zinc-700 bg-zinc-900 text-zinc-300"
-                  : "border-zinc-800 bg-zinc-950 text-zinc-500"
+                  ? "border-border bg-card text-foreground"
+                  : "border-border/60 bg-muted/40 text-muted-foreground"
               }`}
             >
-              <div className="font-mono text-[10px] text-zinc-500">STEP {s.num}</div>
+              <div className="font-mono text-[10px] text-muted-foreground">STEP {s.num}</div>
               <div className="font-medium truncate">{s.title}</div>
             </div>
           ))}
@@ -162,7 +162,7 @@ export default function NewAssessmentWizard() {
       </div>
 
       {error && (
-        <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-400 flex items-start gap-2">
+        <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive flex items-start gap-2">
           <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
           <div>{error}</div>
         </div>
@@ -170,29 +170,29 @@ export default function NewAssessmentWizard() {
 
       {/* STEP 1: Scope Targets */}
       {step === 1 && (
-        <div className="space-y-4 rounded-xl border border-zinc-800 bg-zinc-900/40 p-6">
+        <div className="space-y-4 rounded-xl border border-border bg-card p-6 shadow-xs">
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-zinc-200">Assessment Name</label>
+            <label className="text-xs font-semibold text-foreground">Assessment Name</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-xs text-zinc-100 focus:border-emerald-500 focus:outline-none"
+              className="w-full rounded border border-input bg-background px-3 py-2 text-xs text-foreground focus:border-primary focus:outline-none"
             />
           </div>
 
-          <div className="border-t border-zinc-800 pt-4">
+          <div className="border-t border-border pt-4">
             <div className="flex items-center justify-between mb-3">
               <div>
-                <h3 className="text-xs font-semibold text-zinc-200">Authorized Scope Boundaries</h3>
-                <p className="text-[11px] text-zinc-400">
+                <h3 className="text-xs font-semibold text-foreground">Authorized Scope Boundaries</h3>
+                <p className="text-[11px] text-muted-foreground">
                   Every scan action will strictly assert candidate targets against these rules
                 </p>
               </div>
               <button
                 type="button"
                 onClick={addTarget}
-                className="flex items-center gap-1 rounded border border-zinc-700 bg-zinc-800 px-2.5 py-1 text-xs text-zinc-200 hover:bg-zinc-700"
+                className="flex items-center gap-1 rounded border border-border bg-muted/60 px-2.5 py-1 text-xs text-foreground hover:bg-muted"
               >
                 <Plus className="h-3 w-3" />
                 <span>Add Target</span>
@@ -200,15 +200,15 @@ export default function NewAssessmentWizard() {
             </div>
 
             <div className="space-y-2">
-              {targets.map((t, idx) => (
+              {targets.map((t) => (
                 <div
                   key={t.id}
-                  className="flex flex-col sm:flex-row items-center gap-2 rounded border border-zinc-800 bg-zinc-950/70 p-2.5"
+                  className="flex flex-col sm:flex-row items-center gap-2 rounded border border-border bg-muted/30 p-2.5"
                 >
                   <select
                     value={t.type}
                     onChange={(e) => updateTarget(t.id, { type: e.target.value as any })}
-                    className="rounded border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-xs text-zinc-200 font-mono"
+                    className="rounded border border-input bg-background px-2 py-1.5 text-xs text-foreground font-mono"
                   >
                     <option value="domain">Domain / Host</option>
                     <option value="ip">IPv4 Address</option>
@@ -221,15 +221,15 @@ export default function NewAssessmentWizard() {
                     value={t.value}
                     onChange={(e) => updateTarget(t.id, { value: e.target.value })}
                     placeholder="e.g. demo.lab.local, 10.0.4.0/24"
-                    className="flex-1 rounded border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs text-zinc-100 placeholder-zinc-500 font-mono"
+                    className="flex-1 rounded border border-input bg-background px-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground font-mono"
                   />
 
                   <div className="flex items-center gap-2">
-                    <span className="text-[11px] text-zinc-400">Criticality:</span>
+                    <span className="text-[11px] text-muted-foreground">Criticality:</span>
                     <select
                       value={t.criticality}
                       onChange={(e) => updateTarget(t.id, { criticality: parseInt(e.target.value, 10) })}
-                      className="rounded border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-xs text-zinc-200"
+                      className="rounded border border-input bg-background px-2 py-1.5 text-xs text-foreground"
                     >
                       <option value={1}>1 - Low</option>
                       <option value={2}>2 - Minor</option>
@@ -238,12 +238,12 @@ export default function NewAssessmentWizard() {
                       <option value={5}>5 - Mission Critical</option>
                     </select>
 
-                    <label className="flex items-center gap-1 text-[11px] text-zinc-400 cursor-pointer">
+                    <label className="flex items-center gap-1 text-[11px] text-muted-foreground cursor-pointer">
                       <input
                         type="checkbox"
                         checked={t.excluded}
                         onChange={(e) => updateTarget(t.id, { excluded: e.target.checked })}
-                        className="rounded border-zinc-700 text-emerald-500"
+                        className="rounded border-input text-primary"
                       />
                       <span>Exclude</span>
                     </label>
@@ -251,7 +251,7 @@ export default function NewAssessmentWizard() {
                     <button
                       type="button"
                       onClick={() => removeTarget(t.id)}
-                      className="text-zinc-500 hover:text-red-400 p-1"
+                      className="text-muted-foreground hover:text-destructive p-1"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -265,10 +265,10 @@ export default function NewAssessmentWizard() {
 
       {/* STEP 2: Rules of Engagement */}
       {step === 2 && (
-        <div className="space-y-4 rounded-xl border border-zinc-800 bg-zinc-900/40 p-6">
+        <div className="space-y-4 rounded-xl border border-border bg-card p-6 shadow-xs">
           <div>
-            <h3 className="text-sm font-semibold text-zinc-200">Rules of Engagement (ROE)</h3>
-            <p className="text-xs text-zinc-400 mt-0.5">
+            <h3 className="text-sm font-semibold text-foreground">Rules of Engagement (ROE)</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
               Specify non-intrusive constraints, testing time windows, and prohibited exploitation techniques.
             </p>
           </div>
@@ -277,19 +277,19 @@ export default function NewAssessmentWizard() {
             value={rulesOfEngagement}
             onChange={(e) => setRulesOfEngagement(e.target.value)}
             rows={5}
-            className="w-full rounded border border-zinc-700 bg-zinc-950 p-3 text-xs text-zinc-200 font-mono focus:border-emerald-500 focus:outline-none"
+            className="w-full rounded border border-input bg-background p-3 text-xs text-foreground font-mono focus:border-primary focus:outline-none"
           />
 
           <div className="grid grid-cols-2 gap-4 pt-2">
-            <div className="rounded border border-zinc-800 bg-zinc-950 p-3">
-              <div className="text-xs font-semibold text-zinc-300">Rate Limiting Guarantee</div>
-              <div className="text-[11px] text-zinc-400 mt-1">
+            <div className="rounded border border-border bg-muted/40 p-3">
+              <div className="text-xs font-semibold text-foreground">Rate Limiting Guarantee</div>
+              <div className="text-[11px] text-muted-foreground mt-1">
                 Passive and worker scanners enforce max 5 requests/sec to prevent service disruptions.
               </div>
             </div>
-            <div className="rounded border border-zinc-800 bg-zinc-950 p-3">
-              <div className="text-xs font-semibold text-zinc-300">No Payload Weaponization</div>
-              <div className="text-[11px] text-zinc-400 mt-1">
+            <div className="rounded border border-border bg-muted/40 p-3">
+              <div className="text-xs font-semibold text-foreground">No Payload Weaponization</div>
+              <div className="text-[11px] text-muted-foreground mt-1">
                 Zero exploit delivery. Detection, identification, and configuration auditing only.
               </div>
             </div>
@@ -299,10 +299,10 @@ export default function NewAssessmentWizard() {
 
       {/* STEP 3: Authorization Gate */}
       {step === 3 && (
-        <div className="space-y-5 rounded-xl border border-zinc-800 bg-zinc-900/40 p-6">
-          <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-4 text-xs text-amber-300 space-y-2">
+        <div className="space-y-5 rounded-xl border border-border bg-card p-6 shadow-xs">
+          <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-xs text-amber-700 dark:text-amber-400 space-y-2">
             <div className="flex items-center gap-2 font-bold uppercase font-mono">
-              <ShieldCheck className="h-4 w-4 text-amber-400" />
+              <ShieldCheck className="h-4 w-4" />
               <span>Mandatory Legal Authorization Gate</span>
             </div>
             <p>
@@ -312,48 +312,48 @@ export default function NewAssessmentWizard() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-semibold text-zinc-200">Written Authorization Reference Note</label>
+            <label className="text-xs font-semibold text-foreground">Written Authorization Reference Note</label>
             <input
               type="text"
               value={authorizationNote}
               onChange={(e) => setAuthorizationNote(e.target.value)}
               placeholder="e.g. Signed contract reference, CISO authorization memo number"
-              className="w-full rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-xs text-zinc-200 font-mono focus:border-emerald-500 focus:outline-none"
+              className="w-full rounded border border-input bg-background px-3 py-2 text-xs text-foreground font-mono focus:border-primary focus:outline-none"
             />
           </div>
 
-          <div className="rounded border border-zinc-800 bg-zinc-950/70 p-4">
+          <div className="rounded border border-border bg-muted/40 p-4">
             <label className="flex items-start gap-3 cursor-pointer">
               <input
                 type="checkbox"
                 checked={authorizationConfirmed}
                 onChange={(e) => setAuthorizationConfirmed(e.target.checked)}
-                className="mt-0.5 h-4 w-4 rounded border-zinc-700 text-emerald-500"
+                className="mt-0.5 h-4 w-4 rounded border-input text-primary"
               />
-              <span className="text-xs text-zinc-200">
+              <span className="text-xs text-foreground">
                 <strong>I hereby certify that I am legally authorized</strong> to conduct ethical penetration testing
                 and vulnerability assessments against the listed targets within the specified rules of engagement.
               </span>
             </label>
           </div>
 
-          <div className="rounded border border-zinc-800 bg-zinc-950 p-3 text-[11px] text-zinc-400">
-            <div className="font-semibold text-zinc-300 mb-1 flex items-center gap-1.5">
-              <Info className="h-3.5 w-3.5 text-cyan-400" />
+          <div className="rounded border border-border bg-muted/40 p-3 text-[11px] text-muted-foreground">
+            <div className="font-semibold text-foreground mb-1 flex items-center gap-1.5">
+              <Info className="h-3.5 w-3.5 text-cyan-500" />
               <span>Passive Mode Ownership Verification Notice:</span>
             </div>
             When using Web Passive mode on live domains, the system validates DNS TXT records or a token file at{" "}
-            <code className="text-emerald-400">/.well-known/aeha-verify.txt</code> before scanning.
+            <code className="text-primary font-bold">/.well-known/aeha-verify.txt</code> before scanning.
           </div>
         </div>
       )}
 
       {/* STEP 4: Scan Mode Selection */}
       {step === 4 && (
-        <div className="space-y-5 rounded-xl border border-zinc-800 bg-zinc-900/40 p-6">
+        <div className="space-y-5 rounded-xl border border-border bg-card p-6 shadow-xs">
           <div>
-            <h3 className="text-sm font-semibold text-zinc-200">Select Penetration Testing Engine Mode</h3>
-            <p className="text-xs text-zinc-400 mt-0.5">Choose execution environment adapter</p>
+            <h3 className="text-sm font-semibold text-foreground">Select Penetration Testing Engine Mode</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">Choose execution environment adapter</p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -387,22 +387,22 @@ export default function NewAssessmentWizard() {
                   onClick={() => setMode(opt.id as any)}
                   className={`cursor-pointer rounded-lg border p-4 transition-all flex flex-col justify-between ${
                     mode === opt.id
-                      ? "border-emerald-500 bg-emerald-500/10"
-                      : "border-zinc-800 bg-zinc-950/60 hover:border-zinc-700"
+                      ? "border-primary bg-primary/10 shadow-xs"
+                      : "border-border bg-card hover:border-primary/50"
                   }`}
                 >
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <Icon className={`h-5 w-5 ${mode === opt.id ? "text-emerald-400" : "text-zinc-400"}`} />
-                      <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300">
+                      <Icon className={`h-5 w-5 ${mode === opt.id ? "text-primary" : "text-muted-foreground"}`} />
+                      <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
                         {opt.badge}
                       </span>
                     </div>
-                    <div className="text-xs font-bold text-zinc-100">{opt.title}</div>
-                    <div className="text-[11px] text-zinc-400 mt-1">{opt.desc}</div>
+                    <div className="text-xs font-bold text-foreground">{opt.title}</div>
+                    <div className="text-[11px] text-muted-foreground mt-1">{opt.desc}</div>
                   </div>
                   {mode === opt.id && (
-                    <div className="mt-3 text-[11px] font-medium text-emerald-400 flex items-center gap-1 font-mono">
+                    <div className="mt-3 text-[11px] font-semibold text-primary flex items-center gap-1 font-mono">
                       <Check className="h-3 w-3" /> Selected Engine
                     </div>
                   )}
@@ -414,12 +414,12 @@ export default function NewAssessmentWizard() {
       )}
 
       {/* Navigation Footer */}
-      <div className="flex items-center justify-between border-t border-zinc-800 pt-4">
+      <div className="flex items-center justify-between border-t border-border pt-4">
         {step > 1 ? (
           <button
             type="button"
             onClick={() => setStep(step - 1)}
-            className="flex items-center gap-1.5 rounded border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-xs text-zinc-200 hover:bg-zinc-700"
+            className="flex items-center gap-1.5 rounded border border-border bg-card px-3 py-1.5 text-xs text-foreground hover:bg-muted"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
             <span>Previous Step</span>
@@ -435,7 +435,7 @@ export default function NewAssessmentWizard() {
               setError(null);
               setStep(step + 1);
             }}
-            className="flex items-center gap-1.5 rounded bg-emerald-600 px-4 py-1.5 text-xs font-medium text-white hover:bg-emerald-500"
+            className="flex items-center gap-1.5 rounded bg-primary px-4 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90 shadow-xs"
           >
             <span>Continue</span>
             <ArrowRight className="h-3.5 w-3.5" />
@@ -445,7 +445,7 @@ export default function NewAssessmentWizard() {
             type="button"
             disabled={loading || !authorizationConfirmed}
             onClick={handleSubmit}
-            className="flex items-center gap-1.5 rounded bg-emerald-600 px-5 py-2 text-xs font-bold text-white hover:bg-emerald-500 disabled:opacity-50 shadow-lg"
+            className="flex items-center gap-1.5 rounded bg-primary px-5 py-2 text-xs font-bold text-primary-foreground hover:opacity-90 disabled:opacity-50 shadow-md"
           >
             {loading ? (
               <span>Initializing State Machine...</span>

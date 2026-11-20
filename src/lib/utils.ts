@@ -11,36 +11,36 @@ export function formatSeverity(severity: string) {
     case "critical":
       return {
         label: "Critical",
-        badgeClass: "bg-red-500/10 text-red-500 border-red-500/30",
+        badgeClass: "bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/30",
         indicator: "bg-red-500",
         color: "#ef4444",
       };
     case "high":
       return {
         label: "High",
-        badgeClass: "bg-orange-500/10 text-orange-500 border-orange-500/30",
+        badgeClass: "bg-orange-500/15 text-orange-600 dark:text-orange-400 border-orange-500/30",
         indicator: "bg-orange-500",
         color: "#f97316",
       };
     case "medium":
       return {
         label: "Medium",
-        badgeClass: "bg-amber-500/10 text-amber-500 border-amber-500/30",
+        badgeClass: "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30",
         indicator: "bg-amber-500",
         color: "#eab308",
       };
     case "low":
       return {
         label: "Low",
-        badgeClass: "bg-blue-500/10 text-blue-500 border-blue-500/30",
+        badgeClass: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30",
         indicator: "bg-blue-500",
         color: "#3b82f6",
       };
     default:
       return {
         label: "Info",
-        badgeClass: "bg-zinc-500/10 text-zinc-400 border-zinc-500/30",
-        indicator: "bg-zinc-400",
+        badgeClass: "bg-muted text-muted-foreground border-border",
+        indicator: "bg-muted-foreground",
         color: "#9ca3af",
       };
   }
@@ -53,23 +53,26 @@ export function formatStatus(status: string) {
     case "verified":
     case "resolved":
     case "approved":
-      return { label: formatted, class: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" };
+    case "ACTIVE":
+      return { label: formatted, class: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30" };
     case "FAILED":
     case "rejected":
     case "reopened":
-      return { label: formatted, class: "bg-red-500/10 text-red-400 border-red-500/30" };
+    case "DISABLED":
+      return { label: formatted, class: "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/30" };
     case "AWAITING_APPROVAL":
     case "pending_approval":
-      return { label: formatted, class: "bg-amber-500/10 text-amber-400 border-amber-500/30" };
+    case "PENDING_APPROVAL":
+      return { label: formatted, class: "bg-amber-500/15 text-amber-800 dark:text-amber-400 border-amber-500/30" };
     case "RECON":
     case "SCANNING":
     case "ANALYZING":
     case "REMEDIATING":
     case "REASSESSING":
     case "in_progress":
-      return { label: formatted, class: "bg-cyan-500/10 text-cyan-400 border-cyan-500/30 animate-pulse" };
+      return { label: formatted, class: "bg-cyan-500/15 text-cyan-700 dark:text-cyan-400 border-cyan-500/30 animate-pulse" };
     default:
-      return { label: formatted, class: "bg-zinc-500/10 text-zinc-300 border-zinc-700" };
+      return { label: formatted, class: "bg-muted text-muted-foreground border-border" };
   }
 }
 
@@ -82,6 +85,5 @@ export function formatDate(date: string | Date | null | undefined): string {
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-    second: "2-digit",
   });
 }
