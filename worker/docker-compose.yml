@@ -1,0 +1,40 @@
+version: "3.8"
+
+services:
+  # 1. Deliberately vulnerable lab target for authorized testing
+  lab-target:
+    image: bkimminich/juice-shop:v16.0.0
+    container_name: aeha-lab-juice-shop
+    networks:
+      aeha-lab-net:
+        ipv4_address: 10.0.4.50
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
+  # 2. Scanner Worker container
+  aeha-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: aeha-scanner-worker
+    environment:
+      - APP_URL=http://host.docker.internal:3000
+      - WORKER_TOKEN=aeha-worker-secret-token-9988
+      - WORKER_HMAC_SECRET=aeha-worker-hmac-sha256-signing-secret
+      - ALLOWED_CIDRS=10.0.4.0/24
+      - POLL_INTERVAL=10
+    networks:
+      aeha-lab-net:
+        ipv4_address: 10.0.4.99
+    depends_on:
+      - lab-target
+    restart: unless-stopped
+
+networks:
+  aeha-lab-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.0.4.0/24
+          gateway: 10.0.4.1

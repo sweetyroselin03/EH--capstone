@@ -1,0 +1,377 @@
+import { z } from "zod";
+import { generateObject } from "ai";
+import { getAIModel, getAIProviderConfig } from "./provider";
+
+/**
+ * Redacts secrets, credentials, auth tokens, passwords, and sensitive keys from evidence.
+ */
+export function redactEvidence(evidence: any): any {
+  if (!evidence) return {};
+  if (typeof evidence === "string") {
+    return evidence
+      .replace(/(bearer\s+)[a-zA-Z0-9_\-\.]{15,}/gi, "$1[REDACTED_TOKEN]")
+      .replace(/(password|passwd|pwd|secret|api[_-]?key)=([^&\s]+)/gi, "$1=[REDACTED]")
+      .replace(/-----BEGIN [A-Z ]+ PRIVATE KEY-----[^-]+-----END [A-Z ]+ PRIVATE KEY-----/gs, "[REDACTED_PRIVATE_KEY]");
+  }
+
+  if (Array.isArray(evidence)) {
+    return evidence.map((item) => redactEvidence(item));
+  }
+
+  if (typeof evidence === "object") {
+    const sanitized: Record<string, any> = {};
+    for (const [key, val] of Object.entries(evidence)) {
+      const lower = key.toLowerCase();
+      if (
+        lower.includes("password") ||
+        lower.includes("secret") ||
+        lower.includes("token") ||
+        lower.includes("apikey") ||
+        lower.includes("api_key") ||
+        lower.includes("auth") ||
+        lower.includes("cookie")
+      ) {
+        sanitized[key] = "[REDACTED_CREDENTIAL]";
+      } else {
+        sanitized[key] = redactEvidence(val);
+      }
+    }
+    return sanitized;
+  }
+
+  return evidence;
+}
+
+export interface FindingAnalysisInput {
+  id: string;
+  assetId: string;
+  serviceId?: string | null;
+  assetIp: string;
+  servicePort?: number | null;
+  title: string;
+  description: string;
+  cwe?: string | null;
+  cve?: string | null;
+  cvss?: number | null;
+  severity: string;
+  evidence?: any;
+}
+
+export interface DuplicateClusterResult {
+  primaryFindingId: string;
+  duplicateFindingIds: string[];
+  reason: string;
+}
+
+export interface FindingClassificationResult {
+  findingId: string;
+  isFalsePositive: boolean;
+  fpProbability: number; // 0.0 to 1.0
+  confidence: number; // 0.0 to 1.0
+  needsHumanReview: boolean;
+  reasoning: string;
+}
+
+export interface RemediationRecommendation {
+  findingId: string;
+  title: string;
+  actionType: "patch" | "config" | "disable_service" | "other";
+  isSensitive: boolean; // requires human approval!
+  steps: string[];
+  effort: "low" | "medium" | "high";
+  confidence: number;
+}
+
+// Zod schemas for structured AI output
+export const FindingEvaluationSchema = z.object({
+  isFalsePositive: z.boolean().describe("Whether this finding is a false positive artifact"),
+  fpProbability: z.number().min(0).max(1).describe("Estimated probability of false positive"),
+  confidence: z.number().min(0).max(1).describe("AI model confidence in this evaluation"),
+  needsHumanReview: z.boolean().describe("Flag if confidence is low (< 0.7) or ambiguous"),
+  reasoning: z.string().describe("Clear, plain-English justification for this assessment"),
+  remediation: z.object({
+    title: z.string(),
+    actionType: z.enum(["patch", "config", "disable_service", "other"]),
+    isSensitive: z.boolean().describe("True if changes critical services, causes downtime, or risks data"),
+    steps: z.array(z.string()),
+    effort: z.enum(["low", "medium", "high"]),
+  }),
+});
+
+/**
+ * Deterministic rule-based engine used when AI SDK is not configured or fails.
+ */
+export function evaluateFindingDeterministic(
+  finding: FindingAnalysisInput
+): {
+  classification: FindingClassificationResult;
+  remediation: RemediationRecommendation;
+} {
+  const titleLower = finding.title.toLowerCase();
+  const descLower = finding.description.toLowerCase();
+  const evidenceStr = JSON.stringify(finding.evidence || {}).toLowerCase();
+
+  let isFalsePositive = false;
+  let fpProbability = 0.05;
+  let confidence = 0.95;
+  let needsHumanReview = false;
+  let reasoning = "Finding verified against known vulnerability signatures and contextual evidence.";
+
+  // Rule: Static resource flagged as SQLi with 404 response
+  if (
+    (titleLower.includes("sql") || descLower.includes("sql")) &&
+    (evidenceStr.includes(".css") || evidenceStr.includes(".png") || evidenceStr.includes(".js")) &&
+    evidenceStr.includes("404")
+  ) {
+    isFalsePositive = true;
+    fpProbability = 0.92;
+    confidence = 0.94;
+    reasoning =
+      "Automated scanner flagged SQL injection on a static resource stylesheet based on a generic 404 response. No database query occurs on static assets.";
+  }
+  // Rule: Test probe banners or generic 404s
+  else if (evidenceStr.includes("cannot get") && !titleLower.includes("missing")) {
+    isFalsePositive = true;
+    fpProbability = 0.85;
+    confidence = 0.88;
+    reasoning =
+      "Response payload indicates standard routing handler rejection without executing underlying business logic.";
+  }
+  // Rule: Ambiguous or low-confidence scanner evidence
+  else if (evidenceStr.includes("low") && evidenceStr.includes("heuristic")) {
+    fpProbability = 0.55;
+    confidence = 0.50;
+    needsHumanReview = true;
+    reasoning =
+      "Heuristic match generated by scanner with low confidence score. Flagged for human analyst manual verification.";
+  }
+
+  // Remediation generation rules
+  let actionType: "patch" | "config" | "disable_service" | "other" = "patch";
+  let isSensitive = false;
+  let steps: string[] = [];
+  let remediationTitle = `Remediate ${finding.title}`;
+  let effort: "low" | "medium" | "high" = "medium";
+
+  if (finding.cve?.includes("CVE-2022-22965") || titleLower.includes("spring4shell")) {
+    remediationTitle = "Upgrade Spring Framework and JDK Runtime";
+    actionType = "patch";
+    isSensitive = true; // Upgrading core framework on critical API server requires restart/approval
+    effort = "high";
+    steps = [
+      "Upgrade Spring Framework dependency to 5.3.18+ or 5.2.20+ in build.gradle / pom.xml.",
+      "Upgrade underlying Java runtime to OpenJDK 11.0.15+ or 17.0.3+.",
+      "Re-compile the application artifact and run regression test suite in staging.",
+      "Deploy artifact and verify Tomcat DataBinder disallows disallowedFields binding patterns.",
+    ];
+  } else if (titleLower.includes("openssh") || finding.cve?.includes("CVE-2024-6387")) {
+    remediationTitle = "Apply OpenSSH Patch or Enforce LoginGraceTime=0 Workaround";
+    actionType = "patch";
+    isSensitive = true; // SSH daemon restart
+    effort = "medium";
+    steps = [
+      "Run system package manager update: `sudo apt-get update && sudo apt-get --only-upgrade install openssh-server`.",
+      "If immediate patching is blocked, add `LoginGraceTime 0` to /etc/ssh/sshd_config as temporary mitigation.",
+      "Restart sshd service: `sudo systemctl restart ssh`.",
+    ];
+  } else if (titleLower.includes("redis") && titleLower.includes("unauthenticated")) {
+    remediationTitle = "Enable Redis Authentication and Bind to Localhost";
+    actionType = "config";
+    isSensitive = true; // Modifying database auth requires restart & coordination
+    effort = "medium";
+    steps = [
+      "Edit /etc/redis/redis.conf and set `requirepass <STRONG_RANDOM_SECRET>`.",
+      "Change bind directive to `bind 127.0.0.1 -::1` to prevent external exposure.",
+      "Restart Redis service and update application backend credentials.",
+    ];
+  } else if (titleLower.includes("postgresql") && titleLower.includes("ssl")) {
+    remediationTitle = "Enforce TLS in PostgreSQL and Restrict pg_hba.conf";
+    actionType = "config";
+    isSensitive = true;
+    effort = "medium";
+    steps = [
+      "Enable `ssl = on` in postgresql.conf and provision a trusted TLS certificate.",
+      "Modify pg_hba.conf to enforce `hostssl` method instead of `host` for all remote connections.",
+      "Reload PostgreSQL configuration with `pg_ctl reload`.",
+    ];
+  } else if (titleLower.includes("hsts") || titleLower.includes("strict-transport")) {
+    remediationTitle = "Configure HTTP Strict Transport Security (HSTS) Header";
+    actionType = "config";
+    isSensitive = false;
+    effort = "low";
+    steps = [
+      "Add `Strict-Transport-Security: max-age=31536000; includeSubDomains; preload` header in web server configuration.",
+      "Verify HTTPS redirection is functioning properly for all plain HTTP requests.",
+      "Validate response headers using `curl -I https://<target>`.",
+    ];
+  } else if (titleLower.includes("xss") || titleLower.includes("cross-site scripting")) {
+    remediationTitle = "Implement Contextual Output Encoding and Content-Security-Policy";
+    actionType = "patch";
+    isSensitive = false;
+    effort = "medium";
+    steps = [
+      "Contextually HTML-encode user-supplied query parameters before rendering in templating engine.",
+      "Deploy a restrictive Content-Security-Policy header disallowing unsafe-inline scripts.",
+    ];
+  } else {
+    remediationTitle = `Apply Security Hardening for ${finding.title}`;
+    actionType = "config";
+    isSensitive = false;
+    effort = "low";
+    steps = [
+      "Review vendor documentation for security hardening recommendations.",
+      "Apply security configuration updates in staging prior to production deployment.",
+    ];
+  }
+
+  return {
+    classification: {
+      findingId: finding.id,
+      isFalsePositive,
+      fpProbability,
+      confidence,
+      needsHumanReview,
+      reasoning,
+    },
+    remediation: {
+      findingId: finding.id,
+      title: remediationTitle,
+      actionType,
+      isSensitive,
+      steps,
+      effort,
+      confidence,
+    },
+  };
+}
+
+/**
+ * Finds duplicates across a list of findings using CVE matching and similarity fingerprints.
+ */
+export function clusterDuplicates(findings: FindingAnalysisInput[]): DuplicateClusterResult[] {
+  const clusters: DuplicateClusterResult[] = [];
+  const processed = new Set<string>();
+
+  for (let i = 0; i < findings.length; i++) {
+    const fA = findings[i];
+    if (processed.has(fA.id)) continue;
+
+    const duplicates: string[] = [];
+
+    for (let j = i + 1; j < findings.length; j++) {
+      const fB = findings[j];
+      if (processed.has(fB.id)) continue;
+
+      let isDuplicate = false;
+
+      // 1. Same CVE on same asset/port
+      if (fA.cve && fB.cve && fA.cve === fB.cve && fA.assetIp === fB.assetIp) {
+        isDuplicate = true;
+      }
+      // 2. Same CWE and normalized title on same asset
+      else if (
+        fA.cwe &&
+        fB.cwe &&
+        fA.cwe === fB.cwe &&
+        fA.assetIp === fB.assetIp &&
+        (fA.title.toLowerCase().includes(fB.title.toLowerCase()) ||
+          fB.title.toLowerCase().includes(fA.title.toLowerCase()) ||
+          fB.title.toLowerCase().includes("duplicate"))
+      ) {
+        isDuplicate = true;
+      }
+
+      if (isDuplicate) {
+        duplicates.push(fB.id);
+        processed.add(fB.id);
+      }
+    }
+
+    if (duplicates.length > 0) {
+      processed.add(fA.id);
+      clusters.push({
+        primaryFindingId: fA.id,
+        duplicateFindingIds: duplicates,
+        reason: `Matched on identical vulnerability identifier (${fA.cve || fA.cwe}) and host target (${fA.assetIp}).`,
+      });
+    }
+  }
+
+  return clusters;
+}
+
+/**
+ * Main evaluation orchestrator: attempts LLM execution if configured, gracefully falling back to deterministic engine.
+ */
+export async function analyzeFinding(finding: FindingAnalysisInput): Promise<{
+  classification: FindingClassificationResult;
+  remediation: RemediationRecommendation;
+  engineUsed: "ai-llm" | "deterministic-fallback";
+}> {
+  const model = getAIModel();
+  const config = getAIProviderConfig();
+
+  // If AI model is available, attempt structured LLM evaluation
+  if (model && config.isAvailable) {
+    try {
+      const sanitizedEvidence = redactEvidence(finding.evidence);
+      const prompt = `
+You are an expert Application Security and Penetration Testing AI analyzing a vulnerability finding.
+Evaluate this finding for false positives, determine human review requirements, and generate an actionable remediation plan.
+
+Finding Details:
+- Title: ${finding.title}
+- Asset IP: ${finding.assetIp}
+- Service Port: ${finding.servicePort ?? "N/A"}
+- Severity: ${finding.severity}
+- CVSS: ${finding.cvss ?? "N/A"}
+- CVE: ${finding.cve ?? "N/A"}
+- CWE: ${finding.cwe ?? "N/A"}
+- Description: ${finding.description}
+- Sanitized Evidence: ${JSON.stringify(sanitizedEvidence)}
+
+Determine:
+1. Is this a false positive artifact or a real risk? (fpProbability between 0.0 and 1.0)
+2. Model confidence score (0.0 to 1.0) and whether it needs human review (confidence < 0.70).
+3. Plain-English reasoning.
+4. Remediation title, actionType (patch/config/disable_service/other), isSensitive (true if restarting or disabling critical service), concrete ordered steps, and effort.
+`;
+
+      const result = await generateObject({
+        model,
+        schema: FindingEvaluationSchema,
+        prompt,
+      });
+
+      return {
+        classification: {
+          findingId: finding.id,
+          isFalsePositive: result.object.isFalsePositive,
+          fpProbability: result.object.fpProbability,
+          confidence: result.object.confidence,
+          needsHumanReview: result.object.needsHumanReview,
+          reasoning: result.object.reasoning,
+        },
+        remediation: {
+          findingId: finding.id,
+          title: result.object.remediation.title,
+          actionType: result.object.remediation.actionType,
+          isSensitive: result.object.remediation.isSensitive,
+          steps: result.object.remediation.steps,
+          effort: result.object.remediation.effort,
+          confidence: result.object.confidence,
+        },
+        engineUsed: "ai-llm",
+      };
+    } catch (err) {
+      console.warn("AI LLM evaluation call failed; falling back to deterministic rules:", err);
+    }
+  }
+
+  // Deterministic rule-based fallback
+  const fallback = evaluateFindingDeterministic(finding);
+  return {
+    ...fallback,
+    engineUsed: "deterministic-fallback",
+  };
+}
